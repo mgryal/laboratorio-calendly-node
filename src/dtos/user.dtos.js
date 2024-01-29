@@ -18,7 +18,7 @@ const updateUserDto = Joi.object({
   name,
   email,
   avatar,
-  password
+  password,
 });
 
 const getUserDto = Joi.object({
