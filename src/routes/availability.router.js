@@ -12,8 +12,8 @@ router.post(
   validatorHandler(getAvailabilityDto, 'body'),
   async (req, res, next) => {
     try {
-      service.getAvailability(req.body);
-      // res.json(listTimeZones());
+      const appointments = await service.getAvailability(req.body);
+      res.json(appointments);
     } catch (error) {
       next(error);
     }

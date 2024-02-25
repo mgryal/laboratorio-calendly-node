@@ -1,32 +1,45 @@
-const { milisecondsToMinutes, addMinutesToDate } = require('../utils/date');
+const { differenceInMinutes, add } = require('date-fns');
 const scheduleService = require('./schedule.service');
-
-function HoursToMinutes(hours) {
-  return hours * 60;
-}
+const { zonedTimeToUtc, utcToZonedTime } = require('date-fns-tz');
 
 class AvailabilityService {
   async getAvailability({ scheduleId, date, timezone }) {
     const schedule = await new scheduleService().getById(scheduleId);
     const { duration, margin, availability } = schedule;
     const appointments = [];
+    const bodyDate = new Date(date);
+    const bodyUtcTime = zonedTimeToUtc(bodyDate, timezone);
+    // const zonedTime = utcToZonedTime(bodyDate, timezone);
     availability[0].intervals.forEach((interval) => {
-      const start = new Date(`${date}T${interval.startTime}`);
-      const end = new Date(`${date}T${interval.endTime}`);
-      const minutesDifference = milisecondsToMinutes(end - start);
+      const [startHour, startMinutes] = interval.startTime.split(':');
+      const [endHour, endMinutes] = interval.endTime.split(':');
+      console.log(startHour, startMinutes);
+      const start = zonedTimeToUtc(
+        add(bodyUtcTime, { hours: startHour, minutes: startMinutes }),
+        timezone
+      );
+      const end = new Date(
+        add(bodyUtcTime, { hours: endHour, minutes: endMinutes })
+      );
+      // const start = new Date(`${bodyUtcTime}T${interval.startTime}`);
+      // const end = new Date(`${bodyUtcTime}T${interval.endTime}`);
+      const minutesDifference = differenceInMinutes(end, start);
       const numberOfAppointments = Math.floor(
         minutesDifference / (duration + margin)
       );
       for (let i = 0; i < numberOfAppointments; i++) {
         const appointment = {
-          start: addMinutesToDate(start, i * (duration + margin)),
-          end: addMinutesToDate(start, i * (duration + margin) + duration),
+          startDate: add(start, {
+            minutes: i * (duration + margin),
+          }),
+          endDate: add(start, {
+            minutes: i * (duration + margin) + duration,
+          }),
+          status: 'on',
         };
-        console.log(appointment);
         appointments.push(appointment);
       }
     });
-    console.log(appointments, 'appointments');
     return appointments;
   }
 }
